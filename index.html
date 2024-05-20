@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>YouTube Video with Timestamps</title>
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+</head>
+<body>
+
+<!-- Embedded YouTube Video -->
+<iframe id="player" width="560" height="315" src="https://www.youtube.com/embed/SuWKCv3ewXw" frameborder="0" allowfullscreen></iframe>
+
+<!-- Timestamp Links -->
+<ul id="timestamps"></ul>
+
+<script>
+    $(document).ready(function() {
+        var videoId = 'SuWKCv3ewXw';  // Replace with your video ID
+        var apiKey = '';    // Replace with your API key -- create it on google devloper console
+
+        // Fetch video description containing timestamps
+        $.get(
+            'https://www.googleapis.com/youtube/v3/videos', {
+                part: 'snippet',
+                id: videoId,
+                key: apiKey
+            },
+            function(data) {
+                var description = data.items[0].snippet.description;
+                var timestamps = extractTimestamps(description);
+                console.log(timestamps);
+
+                // document.body.innerHTML = description;
+
+                // Generate timestamp links
+                var $ul = $('#timestamps');
+                $.each(timestamps, function(index, timestamp) {
+                    var $li = $('<li></li>');
+                    var $a = $('<a href="#"></a>').text(timestamp.label).click(function() {
+                        seekToTime(timestamp.time);
+                    });
+                    $li.append($a);
+                    $ul.append($li);
+                });
+            }
+        );
+    });
+
+    // Function to extract timestamps from the description
+    function extractTimestamps(description) {
+        var regex = /(\d{1,2}:\d{2}(?::\d{2})?)\s+(.+)/g;
+        var matches, timestamps = [];
+
+        while ((matches = regex.exec(description)) !== null) {
+            var timeParts = matches[1].split(':');
+            var seconds = 0;
+            if (timeParts.length === 3) {
+                seconds = parseInt(timeParts[0]) * 3600 + parseInt(timeParts[1]) * 60 + parseInt(timeParts[2]);
+            } else if (timeParts.length === 2) {
+                seconds = parseInt(timeParts[0]) * 60 + parseInt(timeParts[1]);
+            }
+            timestamps.push({ time: seconds, label: matches[1] + " - " + matches[2] });
+        }
+
+        return timestamps;
+
+        console.log(timestamps);  
+    }
+    // JavaScript function to seek to a specific timestamp
+    function seekToTime(seconds) {
+        var player = document.getElementById('player');
+        player.contentWindow.postMessage('{"event":"command","func":"' + 'seekTo","args":[' + seconds + ',true]}', '*');
+    }
+</script>
+
+</body>
+</html>
